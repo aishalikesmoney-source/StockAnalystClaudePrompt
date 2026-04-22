@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stock Analyst">
+<title>Stock Analyst</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:#05090f;font-family:'IBM Plex Mono',monospace;color:#e2e8f0;min-height:100vh;padding-bottom:48px}
+  ::-webkit-scrollbar{width:3px}
+  ::-webkit-scrollbar-thumb{background:#1a3a28;border-radius:3px}
+  input{-webkit-appearance:none;appearance:none}
+  button{-webkit-appearance:none;appearance:none;font-family:'IBM Plex Mono',monospace}
+
+  .header{background:linear-gradient(180deg,#081520,#05090f);border-bottom:1px solid #0a1f14;padding:16px 16px 13px}
+  .header-row{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+  .header-logo{color:#4ADE80;font-size:16px}
+  .header-title{font-size:15px;font-weight:700;letter-spacing:.08em;color:#f1f5f9}
+  .header-badge{font-size:8px;font-weight:700;background:#0a1f14;color:#4ADE80;padding:2px 7px;border-radius:3px;border:1px solid #164d2a;letter-spacing:.1em}
+  .header-sub{font-size:10px;color:#334155;letter-spacing:.06em}
+
+  .body{padding:16px 16px 0}
+
+  .ticker-wrap{position:relative;margin-bottom:12px}
+  .ticker-dollar{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#22c55e;font-size:20px;font-weight:700;pointer-events:none}
+  .ticker-input{width:100%;background:#080e18;border:2px solid #0f2010;border-radius:10px;padding:13px 14px 13px 34px;color:#4ADE80;font-size:28px;font-weight:700;font-family:'IBM Plex Mono',monospace;letter-spacing:.14em;transition:border-color .2s}
+  .ticker-input:focus{outline:none;border-color:#22c55e}
+  .ticker-input.ready{border-color:#16a34a}
+  .ticker-ready{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#4ADE80;font-size:10px;letter-spacing:.1em}
+  .ticker-hint{text-align:center;font-size:10px;color:#1e3a2a;letter-spacing:.1em;margin-bottom:12px}
+
+  .full-btn{width:100%;padding:14px;background:linear-gradient(135deg,#16a34a,#15803d);border:none;border-radius:10px;margin-bottom:8px;color:#000;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.06em;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s}
+  .full-btn.copied{background:#14532d;color:#4ADE80}
+  .full-btn:active{opacity:.8;transform:scale(.99)}
+
+  .pdf-note{width:100%;margin-bottom:14px;padding:9px 12px;background:#080e18;border:1px solid #0a1f14;border-radius:8px;display:flex;align-items:center;gap:8px}
+  .pdf-note-icon{font-size:14px;flex-shrink:0}
+  .pdf-note-text{font-size:9px;color:#475569;line-height:1.6;letter-spacing:.03em}
+  .pdf-note-text b{color:#FB923C}
+
+  .cards{display:flex;flex-direction:column;gap:6px}
+  .card{border:1px solid #0f1f2e;border-radius:10px;overflow:hidden;transition:border-color .2s}
+  .card.locked{opacity:.3;pointer-events:none}
+  .card-header{padding:12px 14px;background:#080e18;cursor:pointer;display:flex;align-items:center;gap:10px;-webkit-user-select:none;user-select:none}
+  .card-header:active{opacity:.8}
+  .card-icon{font-size:16px;flex-shrink:0}
+  .card-meta{flex:1}
+  .card-title-row{display:flex;align-items:center;gap:8px}
+  .card-title{font-size:13px;font-weight:700;color:#f1f5f9}
+  .card-tag{font-size:8px;font-weight:700;padding:1px 6px;border-radius:3px;letter-spacing:.08em}
+  .card-copy-btn{padding:5px 12px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:.06em;flex-shrink:0;transition:all .15s;border-width:1px;border-style:solid}
+  .card-copy-btn:active{opacity:.7;transform:scale(.97)}
+  .card-arrow{color:#334155;font-size:12px;flex-shrink:0;transition:transform .2s;display:inline-block}
+  .card-arrow.open{transform:rotate(180deg)}
+  .card-body{overflow:hidden}
+  .card-preview{background:#040810;padding:14px 16px;font-size:11px;color:#64748b;line-height:1.8;white-space:pre-wrap;word-break:break-word;max-height:260px;overflow-y:auto;font-family:'IBM Plex Mono',monospace}
+  .card-footer{padding:10px 14px}
+  .card-big-btn{width:100%;padding:12px;border:none;border-radius:8px;color:#000;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.05em;transition:background .2s}
+  .card-big-btn.copied{color:#4ADE80}
+  .card-big-btn:active{opacity:.8}
+
+  .pdf-instruction-banner{margin:6px 0;padding:10px 14px;background:#0a0810;border:1px solid #2a1a4a;border-radius:8px;display:flex;align-items:flex-start;gap:8px}
+  .pib-icon{color:#C084FC;font-size:14px;flex-shrink:0;margin-top:1px}
+  .pib-text{font-size:9px;color:#6b21a8;line-height:1.7;letter-spacing:.03em}
+  .pib-text b{color:#C084FC}
+
+  .sys-card{margin-top:6px;border:1px solid #1a1a3a;border-radius:10px;overflow:hidden}
+  .sys-header{padding:11px 14px;background:#080810;cursor:pointer;display:flex;align-items:center;gap:10px}
+  .sys-preview{background:#040810;padding:12px 16px;font-size:11px;color:#334155;line-height:1.8;white-space:pre-wrap;font-family:'IBM Plex Mono',monospace}
+
+  .tip{margin-top:10px;padding:10px 14px;background:#07090e;border:1px solid #0a1520;border-radius:8px;font-size:9px;color:#1e3a2a;line-height:1.8;letter-spacing:.04em}
+  .tip span{color:#4ADE80}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#14532d;border:1px solid #22c55e;color:#4ADE80;padding:10px 20px;border-radius:8px;font-size:12px;font-weight:700;letter-spacing:.06em;z-index:9999;transition:transform .25s ease;pointer-events:none;white-space:nowrap}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-row">
+    <span class="header-logo">◈</span>
+    <span class="header-title">STOCK ANALYST</span>
+    <span class="header-badge">PROMPT LAUNCHER</span>
+  </div>
+  <div class="header-sub">ENTER TICKER → COPY → PASTE INTO CLAUDE → GET PDF REPORT</div>
+</div>
+
+<div class="body">
+
+  <div class="ticker-wrap">
+    <span class="ticker-dollar">$</span>
+    <input class="ticker-input" id="tickerInput" type="text" placeholder="NVDA"
+      maxlength="6" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
+      oninput="onTicker(this)">
+    <span class="ticker-ready" id="readyBadge" style="display:none">READY ●</span>
+  </div>
+  <div class="ticker-hint" id="tickerHint">TYPE TICKER TO UNLOCK PROMPTS</div>
+
+  <button class="full-btn" id="fullBtn" style="display:none" onclick="copyFull()">
+    <span>⚡</span><span id="fullBtnText">COPY FULL REPORT + PDF PROMPT</span>
+  </button>
+
+  <div class="pdf-note" id="pdfNote" style="display:none">
+    <span class="pdf-note-icon">📄</span>
+    <div class="pdf-note-text">
+      Every prompt includes a <b>PDF instruction</b>. After Claude runs the analysis it will automatically generate a dark-theme visual PDF dashboard — downloadable from the chat.
+    </div>
+  </div>
+
+  <div class="cards" id="cardsContainer"></div>
+  <div id="sysCard"></div>
+  <div class="tip" style="display:none" id="tipBox">
+    <span>PRO TIP</span> · FULL REPORT = ALL 5 SECTIONS + PDF IN ONE PASTE<br>
+    OR COPY INDIVIDUAL SECTIONS FOR STEP-BY-STEP RESEARCH<br>
+    CHANGE TICKER ABOVE — ALL PROMPTS RELOAD INSTANTLY
+  </div>
+</div>
+
+<div class="toast" id="toast">✓ COPIED</div>
+
+<script>
+const PDF_INSTRUCTION = (t) => `
+
+---
+## PDF OUTPUT INSTRUCTIONS
+
+After completing all sections above, generate a downloadable PDF dashboard for ${t}.
+
+PDF DESIGN RULES:
+- Dark theme. Background #05090F. Cards #080E18. Borders #0A1520.
+- Accent colors: Green #4ADE80, Blue #60A5FA, Yellow #FBBF24, Red #F87171, Purple #C084FC.
+- Font: Courier / monospace throughout.
+- Page size: US Letter.
+- Footer on every page: "STOCK ANALYST  ◈  POWERED BY CLAUDE" left, page number right.
+
+PDF STRUCTURE — one section per visual block:
+
+HEADER BLOCK
+- Ticker symbol large (36pt, green). Company name. Exchange. Date.
+- 4 key metrics in a 2x2 table: current price, market cap, latest revenue, latest EPS.
+- Conviction rating badge (STRONG BUY / BUY / HOLD / AVOID) top right.
+
+SECTION 1 — RESEARCH FOUNDATION (green left border)
+- Earnings summary table: revenue, EPS, guidance, YoY growth.
+- Bullet list: last 3 news events.
+- Two-column layout: Moat bullets left, Competitors table right.
+- Catalyst table: 3 rows, columns = catalyst name, timeline, rating (color-coded red/yellow/blue).
+
+SECTION 2 — VALUATION (blue left border)
+- Peer comparison table: ticker, P/S TTM, P/S fwd, EV/EBITDA, gross margin, YoY growth, Value/Growth Score.
+- Highlight best Value/Growth Score row in green.
+- Metrics grid: forward P/S, Rule of 40, historical P/S range, insider ownership, SBC%.
+
+SECTION 3 — RISK & BEAR CASE (red left border)
+- Risk table: 4 rows. Columns = risk name, severity badge, description.
+- Severity colors: CRITICAL=red, HIGH=yellow, MODERATE=grey.
+- Bullet list: top 3 SEC 10-K risks.
+- Two small metric boxes: customer concentration%, last earnings miss date + drop%.
+
+SECTION 4 — TECHNICALS (yellow left border)
+- Two-column metrics grid: price levels left, MA signals right.
+- Inline technical summary paragraph.
+
+SECTION 5 — VERDICT (purple left border, purple bottom border)
+- Side-by-side: Bull case box (dark green bg) | Bear case box (dark red bg).
+- Each box: scenario text + price target.
+- Full-width verdict bar: conviction rating (large, colored) + one-sentence rationale.
+- Two small boxes at bottom: "Upgrades conviction" (green border) | "Kills thesis" (red border).
+
+DISCLAIMER (small, dim text at bottom)
+- "Generated by Claude AI. For informational purposes only. Not financial advice. Verify all data independently."
+
+Use reportlab in Python to build the PDF. Save to /mnt/user-data/outputs/${t}_Research_Report.pdf.
+Provide a download link when complete.`;
+
+const SECTIONS = [
+  {
+    id:"foundation", label:"Foundation", tag:"SECTION 1",
+    color:"#4ADE80", dim:"#0A1F14", icon:"◎",
+    prompt: t => `## SECTION 1 — RESEARCH FOUNDATION
+
+Search Yahoo Finance + recent news for ${t}.
+
+1. BUSINESS MODEL
+Plain English. Revenue breakdown.
+
+2. RECENT NEWS & EARNINGS
+Last 3 major news events.
+Most recent: revenue, EPS, guidance.
+
+3. MOAT & COMPETITION
+Top 3 competitor tickers (find yourself).
+Unique advantage vs competitors.
+
+4. CATALYSTS — next 12 months
+List top 3. Rate each: CRITICAL / HIGH / STRATEGIC.
+CRITICAL = thesis breaks if slips.
+
+5. ASYMMETRY CHECK
+Valuation floor vs growth ceiling.
+Risk/reward skewed positive or negative?` + PDF_INSTRUCTION(t)
+  },
+  {
+    id:"valuation", label:"Valuation", tag:"SECTION 2",
+    color:"#60A5FA", dim:"#06080F", icon:"◈",
+    prompt: t => `## SECTION 2 — VALUATION
+
+Search Yahoo Finance + Macrotrends for ${t}.
+
+1. PEER TABLE
+Find top 2 competitor tickers yourself.
+Columns: ticker, P/S TTM, P/S fwd, EV/EBITDA, gross margin%, YoY rev growth%, Value/Growth Score.
+Value/Growth Score = P/S TTM / rev growth%. Lower = better.
+
+2. FORWARD P/S
+Use management guidance for next fiscal year.
+Calculate forward P/S at today's price.
+Guidance credible? Stress-test it.
+
+3. RULE OF 40
+Rev growth% + EBITDA margin% last 4 quarters.
+Above or below 40? Trajectory?
+
+4. HISTORICAL RANGE
+3yr P/S: min, max, avg.
+Current multiple vs history — cheap, fair, expensive?
+
+5. INSIDER ALIGNMENT
+Insider ownership% vs industry avg.
+SBC as % revenue from latest 10-K.` + PDF_INSTRUCTION(t)
+  },
+  {
+    id:"risk", label:"Risk", tag:"SECTION 3",
+    color:"#F87171", dim:"#0F0606", icon:"⚠",
+    prompt: t => `## SECTION 3 — RISK & BEAR CASE
+
+Act as short seller on ${t}. Break bull thesis.
+
+1. SKEPTIC ASSESSMENT (3 points)
+Accounting irregularities.
+Customer/revenue concentration.
+Competitive threats.
+Search Seeking Alpha bear articles.
+
+2. SHORT REPORT (3 points)
+Search Twitter/X negative threads.
+Why might ${t} be worth far less?
+
+3. SEC 10-K RISK FACTORS
+Search SEC.gov latest 10-K.
+Top 3 company-specific risks.
+Skip boilerplate. Flag unique items only.
+
+4. CUSTOMER CONCENTRATION
+Top 3 clients as % revenue.
+Rising or falling YoY?
+
+5. DILUTION
+Secondary offerings or ATM programs — last 24 months.
+Current authorized program size.
+
+6. LAST EARNINGS MISS
+Date, specific reason, stock reaction.` + PDF_INSTRUCTION(t)
+  },
+  {
+    id:"technicals", label:"Technicals", tag:"SECTION 4",
+    color:"#FBBF24", dim:"#0F0A06", icon:"◬",
+    prompt: t => `## SECTION 4 — TECHNICALS
+
+Search TradingView + Yahoo Finance for ${t}.
+
+1. KEY LEVELS
+52-week high/low.
+Support: 20d, 100d, 200d SMA.
+Resistance: prior highs, analyst targets.
+Immediate level to watch.
+
+2. MOVING AVERAGES
+Above or below 200d MA? Slope direction.
+Recent Golden Cross or Death Cross?
+
+3. RELATIVE STRENGTH
+${t} vs SPY — last 3 months.
+Outperforming or lagging?
+
+4. SHORT INTEREST
+Search Fintel or ShortSqueeze.
+% float shorted. Days to cover.
+Rising or falling last 12 months?
+
+5. SENTIMENT & VOLATILITY
+Retail sentiment last 7 days (Stocktwits/Reddit).
+Bullish, mixed, or fearful.
+IV vs historical volatility.
+Recent volume: breakouts, breakdowns, divergences.` + PDF_INSTRUCTION(t)
+  },
+  {
+    id:"verdict", label:"Verdict", tag:"SECTION 5",
+    color:"#C084FC", dim:"#0A0610", icon:"◉",
+    prompt: t => `## SECTION 5 — VERDICT
+
+Search latest analyst ratings + price targets for ${t}.
+
+1. BULL CASE
+Best scenario. Price target + timeframe.
+
+2. BEAR CASE
+Most likely failure mode. Realistic downside.
+
+3. NET CONVICTION
+STRONG BUY / BUY / HOLD / AVOID.
+One sentence. No hedging.
+
+4. ASYMMETRY
+Risk/reward from today's price.
+Skewed positive or negative?
+
+5. MIND CHANGERS
+1 event that upgrades conviction.
+1 event that kills thesis immediately.` + PDF_INSTRUCTION(t)
+  }
+];
+
+const SYSTEM = t =>
+`You: institutional equity analyst.
+Task: full stock research report on ${t}.
+Style: no filler words. No 'the', 'is', 'am', 'are', 'a', 'an'.
+Sentences: 3-6 words max. Direct answers only.
+Data: use web search throughout. Cite sources.
+Tone: blunt. No hedging. No AI disclaimers.
+Output: after analysis, generate a dark-theme visual PDF dashboard. Instructions at end of prompt.`;
+
+const FULL = t => SYSTEM(t) + "\n\n" + SECTIONS.map(s => {
+  // For full prompt, strip individual PDF instructions and add one at the end
+  const base = s.prompt(t).split("\n---\n## PDF OUTPUT")[0];
+  return base;
+}).join("\n\n---\n\n") + PDF_INSTRUCTION(t);
+
+let currentTicker = "";
+let expandedId = null;
+let toastTimer = null;
+
+function onTicker(el) {
+  currentTicker = el.value.toUpperCase().replace(/[^A-Z.]/g,"").slice(0,6);
+  el.value = currentTicker;
+  const ready = currentTicker.length > 0;
+  el.classList.toggle("ready", ready);
+  document.getElementById("readyBadge").style.display = ready ? "" : "none";
+  document.getElementById("tickerHint").style.display = ready ? "none" : "";
+  document.getElementById("fullBtn").style.display = ready ? "" : "none";
+  document.getElementById("pdfNote").style.display = ready ? "" : "none";
+  document.getElementById("tipBox").style.display = ready ? "" : "none";
+  document.getElementById("fullBtnText").textContent = ready
+    ? `COPY FULL REPORT + PDF — ${currentTicker}` : "COPY FULL REPORT + PDF PROMPT";
+  renderCards();
+  renderSys();
+}
+
+function renderCards() {
+  const t = currentTicker || "TICKER";
+  const container = document.getElementById("cardsContainer");
+  container.innerHTML = "";
+
+  SECTIONS.forEach(sec => {
+    const isOpen = expandedId === sec.id;
+    const promptText = sec.prompt(t);
+
+    const card = document.createElement("div");
+    card.className = "card" + (currentTicker ? "" : " locked");
+    card.style.border = `1px solid ${isOpen ? sec.color+"50" : "#0f1f2e"}`;
+
+    card.innerHTML = `
+      <div class="card-header" onclick="toggleCard('${sec.id}')" style="background:${isOpen ? sec.dim : "#080e18"}">
+        <span class="card-icon" style="color:${sec.color}">${sec.icon}</span>
+        <div class="card-meta">
+          <div class="card-title-row">
+            <span class="card-title">${sec.label}</span>
+            <span class="card-tag" style="color:${sec.color};background:${sec.dim};border:1px solid ${sec.color}40">${sec.tag}</span>
+            <span style="font-size:8px;color:#C084FC;background:#0A0610;border:1px solid #C084FC30;padding:1px 5px;border-radius:3px;letter-spacing:.06em">+ PDF</span>
+          </div>
+        </div>
+        <button class="card-copy-btn" id="copybtn-${sec.id}"
+          style="color:${sec.color};background:${sec.color}22;border-color:${sec.color}60"
+          onclick="event.stopPropagation();copySection('${sec.id}')">COPY</button>
+        <span class="card-arrow ${isOpen?"open":""}">▾</span>
+      </div>
+      ${isOpen ? `
+        <div class="card-body">
+          <div class="card-preview">${escHtml(promptText)}</div>
+          <div class="pdf-instruction-banner">
+            <span class="pib-icon">◉</span>
+            <div class="pib-text"><b>PDF INSTRUCTIONS INCLUDED</b> — Claude will generate a dark-theme visual PDF dashboard after completing this section. Download link appears in chat.</div>
+          </div>
+          <div class="card-footer" style="background:${sec.dim}">
+            <button class="card-big-btn" id="bigbtn-${sec.id}"
+              style="background:${sec.color}"
+              onclick="copySection('${sec.id}')">
+              COPY ${sec.label.toUpperCase()} + PDF — ${t}
+            </button>
+          </div>
+        </div>` : ""}
+    `;
+    container.appendChild(card);
+  });
+}
+
+function renderSys() {
+  const t = currentTicker || "TICKER";
+  const sysText = SYSTEM(t);
+  const isOpen = expandedId === "system";
+  document.getElementById("sysCard").innerHTML = currentTicker ? `
+    <div class="sys-card">
+      <div class="sys-header" onclick="toggleCard('system')">
+        <span style="color:#475569;font-size:14px">⚙</span>
+        <div style="flex:1">
+          <span style="font-size:12px;font-weight:700;color:#475569">System Instructions</span>
+          <span style="font-size:8px;color:#334155;margin-left:8px">baked into full prompt</span>
+        </div>
+        <button class="card-copy-btn" id="copybtn-system"
+          style="color:#475569;background:#0a0a18;border-color:#1a1a3a"
+          onclick="event.stopPropagation();copySection('system')">COPY</button>
+        <span class="card-arrow ${isOpen?"open":""}">▾</span>
+      </div>
+      ${isOpen ? `<div class="sys-preview">${escHtml(sysText)}</div>` : ""}
+    </div>` : "";
+}
+
+function toggleCard(id) {
+  expandedId = expandedId === id ? null : id;
+  renderCards();
+  renderSys();
+}
+
+function copySection(id) {
+  const t = currentTicker || "TICKER";
+  let text = id === "system" ? SYSTEM(t) : SECTIONS.find(s=>s.id===id)?.prompt(t) || "";
+  doFallbackCopy(text);
+  showToast("✓ COPIED — PASTE INTO CLAUDE");
+  const btn = document.getElementById(`copybtn-${id}`);
+  const bigbtn = document.getElementById(`bigbtn-${id}`);
+  if (btn) { btn.textContent = "✓"; setTimeout(()=>{ if(btn) btn.textContent="COPY"; }, 2200); }
+  if (bigbtn) { bigbtn.textContent = "✓ COPIED — PASTE INTO CLAUDE"; bigbtn.classList.add("copied"); bigbtn.style.background="#14532d"; }
+}
+
+function copyFull() {
+  const t = currentTicker || "TICKER";
+  doFallbackCopy(FULL(t));
+  showToast("⚡ FULL REPORT + PDF COPIED");
+  const btn = document.getElementById("fullBtn");
+  const txt = document.getElementById("fullBtnText");
+  btn.classList.add("copied");
+  txt.textContent = "✓ COPIED — PASTE INTO CLAUDE CHAT";
+  setTimeout(()=>{ btn.classList.remove("copied"); txt.textContent=`COPY FULL REPORT + PDF — ${t}`; }, 2500);
+}
+
+function doFallbackCopy(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).catch(()=>legacyCopy(text));
+    } else { legacyCopy(text); }
+  } catch { legacyCopy(text); }
+}
+
+function legacyCopy(text) {
+  const el = document.createElement("textarea");
+  el.value = text;
+  el.style.cssText = "position:fixed;top:0;left:0;opacity:0;pointer-events:none";
+  document.body.appendChild(el);
+  el.focus(); el.select();
+  document.execCommand("copy");
+  document.body.removeChild(el);
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove("show"), 2200);
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+renderCards();
+</script>
+</body>
+</html>
