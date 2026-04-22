@@ -108,7 +108,7 @@
   <div class="pdf-note" id="pdfNote" style="display:none">
     <span class="pdf-note-icon">📄</span>
     <div class="pdf-note-text">
-      Every prompt includes a <b>PDF instruction</b>. After Claude runs the analysis it will automatically generate a dark-theme visual PDF dashboard — downloadable from the chat.
+      Every prompt includes <b>PDF instructions</b>. Claude generates a dark-theme visual PDF after analysis — dense layout, no blank areas, downloadable from chat.
     </div>
   </div>
 
@@ -129,54 +129,81 @@ const PDF_INSTRUCTION = (t) => `
 ---
 ## PDF OUTPUT INSTRUCTIONS
 
-After completing all sections above, generate a downloadable PDF dashboard for ${t}.
+After completing all analysis above, generate a downloadable PDF for ${t} using Python reportlab.
+Save to /mnt/user-data/outputs/${t}_Research_Report.pdf and provide download link.
 
-PDF DESIGN RULES:
-- Dark theme. Background #05090F. Cards #080E18. Borders #0A1520.
-- Accent colors: Green #4ADE80, Blue #60A5FA, Yellow #FBBF24, Red #F87171, Purple #C084FC.
-- Font: Courier / monospace throughout.
-- Page size: US Letter.
-- Footer on every page: "STOCK ANALYST  ◈  POWERED BY CLAUDE" left, page number right.
+CRITICAL LAYOUT RULES — read before writing any code:
+- ZERO blank space. Every inch of every page must contain content.
+- NO Spacer() taller than 3 points anywhere in the document.
+- NO empty table cells. If data unknown, write "N/A" — never leave cell blank.
+- Pack all content into 2-column layouts wherever possible. Never use single full-width paragraphs when two columns fit.
+- Tight padding: all table cells use topPad=3, bottomPad=3, leftPad=6, rightPad=6.
+- Font size 7.5pt for body text, 8.5pt for labels, 6.5pt for sub-labels. Tight leading = fontSize + 2.
+- Use KeepTogether() on every logical block so sections never split awkwardly across pages.
+- Fill ALL remaining vertical space on each page — if a page has a gap, add more content or compact existing content further.
 
-PDF STRUCTURE — one section per visual block:
+PAGE BACKGROUND & COLORS:
+- Page background: #05090F. All content sits on top via table backgrounds.
+- Card background: #080E18. Alternate rows: #070C14.
+- Borders: #0A1520 (0.3pt). Section left-border accents: 2.5pt solid.
+- Green #4ADE80, Blue #60A5FA, Yellow #FBBF24, Red #F87171, Purple #C084FC, Orange #FB923C.
+- Body text #94A3B8. Light text #CBD5E1. Dim text #475569. White #F1F5F9.
+- Font: Courier / Courier-Bold throughout. No other fonts.
 
-HEADER BLOCK
-- Ticker symbol large (36pt, green). Company name. Exchange. Date.
-- 4 key metrics in a 2x2 table: current price, market cap, latest revenue, latest EPS.
-- Conviction rating badge (STRONG BUY / BUY / HOLD / AVOID) top right.
+HEADER (compact — fits in ~1 inch):
+- Single table row spanning full width.
+- Left cell: ticker in 28pt green bold, company name + exchange in 8pt dim, one line.
+- Right cell: 3x2 mini grid — Price, Mkt Cap, Revenue, EPS, Gross Margin, Next Earnings.
+- Bottom border: 1.5pt green line. No space below — next section starts immediately.
 
-SECTION 1 — RESEARCH FOUNDATION (green left border)
-- Earnings summary table: revenue, EPS, guidance, YoY growth.
-- Bullet list: last 3 news events.
-- Two-column layout: Moat bullets left, Competitors table right.
-- Catalyst table: 3 rows, columns = catalyst name, timeline, rating (color-coded red/yellow/blue).
+METRIC STRIP (single row, 6 cells across full width):
+- FY revenue, QoQ revenue, EPS, gross margin, FCF, forward P/E.
+- All in one compact table row. Cell height ~28pt max. No gaps between header and strip.
 
-SECTION 2 — VALUATION (blue left border)
-- Peer comparison table: ticker, P/S TTM, P/S fwd, EV/EBITDA, gross margin, YoY growth, Value/Growth Score.
-- Highlight best Value/Growth Score row in green.
-- Metrics grid: forward P/S, Rule of 40, historical P/S range, insider ownership, SBC%.
+SECTION BLOCKS — each section is a KeepTogether block:
+- Section label: 9pt bold, color-coded, with tag [SECTION N] in dim text. Same line, no separate row.
+- Left border accent: 2.5pt colored line on every section block.
+- Use 2-column split (3.65in each) for ALL sections. Never single column.
+- Within each column, stack items with 2pt spacers only.
+- Bullet points: "› " prefix in section color, 7.5pt text, leftIndent=10, leading=10.5.
 
-SECTION 3 — RISK & BEAR CASE (red left border)
-- Risk table: 4 rows. Columns = risk name, severity badge, description.
-- Severity colors: CRITICAL=red, HIGH=yellow, MODERATE=grey.
-- Bullet list: top 3 SEC 10-K risks.
-- Two small metric boxes: customer concentration%, last earnings miss date + drop%.
+SECTION 1 — FOUNDATION (green #4ADE80, bg #0A1F14):
+- Left col: business model bullets + moat bullets. Right col: earnings table (6 rows, 2 cols).
+- Below in 2-col: competitor table (ticker, moat note, threat level) left | catalyst table (3 rows: name, rating, detail) right.
+- Catalyst rating colors: CRITICAL=red bold, HIGH=yellow bold, STRATEGIC=blue bold.
 
-SECTION 4 — TECHNICALS (yellow left border)
-- Two-column metrics grid: price levels left, MA signals right.
-- Inline technical summary paragraph.
+SECTION 2 — VALUATION (blue #60A5FA, bg #0A1520):
+- Full-width peer comparison table: 7 columns (ticker, P/S TTM, P/S fwd, EV/EBITDA, gross margin, YoY growth, Value/Growth Score). Highlight best Value/Growth Score row in green.
+- Below in 2-col: left = forward P/S + Rule of 40 + historical range as compact rows. Right = insider metrics + SBC + valuation context bullets.
 
-SECTION 5 — VERDICT (purple left border, purple bottom border)
-- Side-by-side: Bull case box (dark green bg) | Bear case box (dark red bg).
-- Each box: scenario text + price target.
-- Full-width verdict bar: conviction rating (large, colored) + one-sentence rationale.
-- Two small boxes at bottom: "Upgrades conviction" (green border) | "Kills thesis" (red border).
+SECTION 3 — RISK (red #F87171, bg #1A0808):
+- Full-width risk table: 4 rows, 3 cols (risk name bold, severity badge color-coded, description 7.5pt).
+- Below in 2-col: left = 3 SEC 10-K risk bullets. Right = customer concentration % table + dilution row + last miss row.
+- Severity: CRITICAL=red, HIGH=yellow, MODERATE=dim.
 
-DISCLAIMER (small, dim text at bottom)
-- "Generated by Claude AI. For informational purposes only. Not financial advice. Verify all data independently."
+SECTION 4 — TECHNICALS (yellow #FBBF24, bg #1A1000):
+- 2-col layout: left = key price levels grid (6 items). Right = MA status + RS vs SPY + short interest grid (6 items).
+- One full-width row below: sentiment + IV + volume patterns as inline text paragraph (7.5pt, 2 lines max).
 
-Use reportlab in Python to build the PDF. Save to /mnt/user-data/outputs/${t}_Research_Report.pdf.
-Provide a download link when complete.`;
+SECTION 5 — VERDICT (purple #C084FC, bg #0D0818, purple bottom border 2pt):
+- 2-col: left = bull case box (dark green bg #060F08, green left border, scenario text + price target bold). Right = bear case box (dark red bg #0F0606, red left border, failure mode + downside bold).
+- Full-width conviction bar below: STRONG BUY / BUY / HOLD / AVOID in 14pt, verdict sentence in 8pt. Background #0A0A18.
+- 2-col mind-changers: left = upgrades conviction (green border). Right = kills thesis (red border).
+
+DISCLAIMER (6pt, dim #1E293B, single line at very bottom):
+"Generated by Claude AI. For informational purposes only. Not financial advice. Verify all data independently."
+
+PAGE FOOTER (every page via onPage callback):
+- Left: "STOCK ANALYST  ◈  POWERED BY CLAUDE" in 6pt dim.
+- Right: "PAGE N" in 6pt dim.
+- Top separator: 0.3pt #0A1520 line.
+- Margins: left=0.5in, right=0.5in, top=0.45in, bottom=0.5in.
+
+FINAL CHECK before saving:
+1. Scroll through every page mentally — any gap larger than 3pt? Fill it.
+2. Any cell with no text? Add "N/A".
+3. Any single-column block that could be two columns? Split it.
+4. Total pages should be 2-3 max for a complete report. If hitting 4+ pages, reduce font to 7pt and padding to 3pt.`;
 
 const SECTIONS = [
   {
@@ -333,12 +360,10 @@ Style: no filler words. No 'the', 'is', 'am', 'are', 'a', 'an'.
 Sentences: 3-6 words max. Direct answers only.
 Data: use web search throughout. Cite sources.
 Tone: blunt. No hedging. No AI disclaimers.
-Output: after analysis, generate a dark-theme visual PDF dashboard. Instructions at end of prompt.`;
+Output: after analysis, generate a dense dark-theme visual PDF. Instructions at end of prompt.`;
 
 const FULL = t => SYSTEM(t) + "\n\n" + SECTIONS.map(s => {
-  // For full prompt, strip individual PDF instructions and add one at the end
-  const base = s.prompt(t).split("\n---\n## PDF OUTPUT")[0];
-  return base;
+  return s.prompt(t).split("\n---\n## PDF OUTPUT")[0];
 }).join("\n\n---\n\n") + PDF_INSTRUCTION(t);
 
 let currentTicker = "";
@@ -365,15 +390,12 @@ function renderCards() {
   const t = currentTicker || "TICKER";
   const container = document.getElementById("cardsContainer");
   container.innerHTML = "";
-
   SECTIONS.forEach(sec => {
     const isOpen = expandedId === sec.id;
     const promptText = sec.prompt(t);
-
     const card = document.createElement("div");
     card.className = "card" + (currentTicker ? "" : " locked");
     card.style.border = `1px solid ${isOpen ? sec.color+"50" : "#0f1f2e"}`;
-
     card.innerHTML = `
       <div class="card-header" onclick="toggleCard('${sec.id}')" style="background:${isOpen ? sec.dim : "#080e18"}">
         <span class="card-icon" style="color:${sec.color}">${sec.icon}</span>
@@ -394,11 +416,10 @@ function renderCards() {
           <div class="card-preview">${escHtml(promptText)}</div>
           <div class="pdf-instruction-banner">
             <span class="pib-icon">◉</span>
-            <div class="pib-text"><b>PDF INSTRUCTIONS INCLUDED</b> — Claude will generate a dark-theme visual PDF dashboard after completing this section. Download link appears in chat.</div>
+            <div class="pib-text"><b>PDF INSTRUCTIONS INCLUDED</b> — Claude generates a dense dark-theme PDF after this section. No blank areas. 2-column layout throughout. Download link in chat.</div>
           </div>
           <div class="card-footer" style="background:${sec.dim}">
-            <button class="card-big-btn" id="bigbtn-${sec.id}"
-              style="background:${sec.color}"
+            <button class="card-big-btn" id="bigbtn-${sec.id}" style="background:${sec.color}"
               onclick="copySection('${sec.id}')">
               COPY ${sec.label.toUpperCase()} + PDF — ${t}
             </button>
